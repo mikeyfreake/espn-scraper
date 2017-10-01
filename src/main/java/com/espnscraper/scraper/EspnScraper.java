@@ -18,7 +18,7 @@ public class EspnScraper {
 	private String leagueId;
 	
 	private final String LEAGUE_HOMEPAGE = "http://games.espn.com/ffl/leagueoffice?leagueId=";
-	private final String SEASON_STANDINGS = "http://games.espn.com/ffl/tools/finalstandings?leagueId=";
+	private final String FINAL_STANDINGS = "http://games.espn.com/ffl/tools/finalstandings?leagueId=";
 
 	public EspnScraper(String leagueId) {
 		this.leagueId = leagueId;
@@ -39,7 +39,7 @@ public class EspnScraper {
 	}
 	
 	public Season getSeason(String year) throws IOException {
-		Document doc = Jsoup.connect(SEASON_STANDINGS + this.leagueId + "&seasonId=" + year).get();
+		Document doc = Jsoup.connect(FINAL_STANDINGS + this.leagueId + "&seasonId=" + year).get();
 		
 		Season season = new Season(year);
 		
@@ -51,10 +51,38 @@ public class EspnScraper {
 	private List<Team> getTeams(Document doc) throws IOException {
 		List<Team> list = new ArrayList<Team>();
 		
-		Elements els = doc.select("[name^=rowRank1]");
+		Elements els = doc.select("tr[id^=rankRow]");
 		
-		for (Element el : els) {
+		for (Element tr : els) {
 			
+			Elements tds = tr.getElementsByTag("td");
+			
+			Integer rank = new Integer(tds.get(0).text());
+			String teamName = tds.get(1).child(0).text(); 
+			String owner = tds.get(2).text();
+			String[] record = tds.get(4).text().split("-");
+			Integer wins = new Integer(record[0]);
+			Integer losses = new Integer(record[1]);
+			Integer ties = record.length == 3 ? new Integer(record[2]) : 0;
+			Double pf = new Double(tds.get(5).text());
+			Double pa = new Double(tds.get(6).text());
+			Double pfpg = new Double(tds.get(7).text());
+			Double papg = new Double(tds.get(8).text());
+			Double diff = new Double(tds.get(9).text());
+			
+			Team team = new Team(teamName, 0);
+			team.setRank(rank);
+			team.setOwner(owner);
+			team.setWins(wins);
+			team.setLosses(losses);
+			team.setTies(ties);
+			team.setPointsFor(pf);
+			team.setPointsAgainst(pa);
+			team.setPointsForPerGame(pfpg);
+			team.setPointsAgainstPerGame(papg);
+			team.setPointsForPlusMinus(diff);
+						
+			list.add(team);
 		}
 		
 		return list;
